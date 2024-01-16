@@ -1,5 +1,3 @@
-const { default: mongoose } = require("mongoose")
-
 const mongoose = require("mongoose");
 
 const userSchema = mongoose.Schema({
@@ -21,7 +19,7 @@ const userSchema = mongoose.Schema({
         type: String,
         required: [true, "password is necessary"],
         minLength: [6,"cannot be less than 6"],
-        maxLength: [30,"cannot be more than 30"] ,// avoid malicious string
+        //maxLength: [30,"cannot be more than 30"] ,// avoid malicious string
 
 
     },
@@ -51,4 +49,4 @@ const userSchema = mongoose.Schema({
 
 
 const User = mongoose.model("User",userSchema)
-model.exports = User
+module.exports = User
