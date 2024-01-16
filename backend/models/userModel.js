@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-
+const bcrypt = require("bcryptjs");
 const userSchema = mongoose.Schema({
     name: {
         type: String,
@@ -45,6 +45,22 @@ const userSchema = mongoose.Schema({
     timeStamps: true
 } )
 
+//hash pass  (encryption)
+
+userSchema.pre("save",async function(next) {
+
+if(!this.isModified("password"))
+{
+    return next()
+}
+
+//hash pass  (encryption)
+const salt = await bcrypt.genSalt(11); //salt for hash
+const hashedPassword = await bcrypt.hash(this.password,salt);
+
+this.password = hashedPassword;
+next()
+})
 // everytime i want to access ill user below
 
 

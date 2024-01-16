@@ -1,6 +1,15 @@
+const { response } = require("express");
 const User = require("../models/userModel");
 const asyncHandler = require("express-async-handler");
+const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+// token for each user session
+const generateToken =(id) => {
+
+    return jwt.sign({id}, process.env.JWT_SECRET,{expiresIn : "1d"});
+
+}
+
 
 const registerUser = asyncHandler(async (req,res) => {
 
@@ -25,12 +34,7 @@ const registerUser = asyncHandler(async (req,res) => {
     res.status(400)
     throw new Error("Email already in use")
   }
-
-//hash pass  (encryption)
-
-const salt = await bcrypt.genSalt(11); //salt for hash
-
-const hashedPassword = await bcrypt.hash(password,salt);
+  
 
 
 
@@ -38,9 +42,23 @@ const hashedPassword = await bcrypt.hash(password,salt);
   const user = await User.create({
     name,
     email,
-    password: hashedPassword
+    password
 
   })
+  //Generate Token
+  const token = generateToken(user._id)
+
+  //HTTP cookie
+
+  res.cookie("token",token,{
+    path:"/",
+    httpOnly: true,
+    expiresIn: new Date(Date.now() + 1000 * 86400), // 1 day
+    sameSite: "none",
+    secure: true //https
+});
+
+
   if(user) // retireve info
   {// new user create 201 status code
     const{_id,name,email,photo,phone,bio}= user //not password
@@ -50,7 +68,8 @@ const hashedPassword = await bcrypt.hash(password,salt);
         email,
         photo,
         phone,
-        bio
+        bio,
+        token
     })
   }else{
     res.status(400)
@@ -60,6 +79,47 @@ const hashedPassword = await bcrypt.hash(password,salt);
    
 });
 
+//Login user
+const loginUser =asyncHandler(async (req,res)=>{
+  const {email,password} = req.body
+
+  //validating incoming requests
+  if(!email || !password)
+  {
+    res.status(400);
+    throw new Error("Please enter email and Password");
+  }
+  // checking user existence
+  const user = await User.findOne({email});
+
+  if(!user)
+  {
+    res.status(400);
+    throw new Error("User not found");
+  }
+
+  //if user is valid
+
+  const passwordCheck =  await bcrypt.compare(password,user.password);
+
+  if(user && passwordCheck)
+  {
+      const{_id,name,email,photo,phone,bio}= user //not password
+         res.status(201).json({ 
+        _id,
+        name,
+        email,
+        photo,
+        phone,
+        bio
+    });
+  }else{
+    res.status(400)
+    throw new Error("Invalid email or password");
+  }
+});
+
 module.exports = {
-    registerUser
+    registerUser,
+    loginUser
 }
